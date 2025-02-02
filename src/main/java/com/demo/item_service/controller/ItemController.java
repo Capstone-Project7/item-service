@@ -17,14 +17,14 @@ import com.demo.item_service.service.ItemService;
 
 
 @Controller
-@RequestMapping("/api")
+@RequestMapping("/api/items")
 public class ItemController {
 
     @Autowired
     private ItemService itemService;
 
     // Get all items
-    @GetMapping("/items")
+    @GetMapping("")
     public ResponseEntity<List<ItemEntity>> getAllOrderItems() {
         List<ItemEntity> items = itemService.getAllOrderItems();
         return ResponseEntity.ok(items);
@@ -68,7 +68,7 @@ public class ItemController {
     }
 
     // Create a new order item
-    @PostMapping("/items")
+    @PostMapping("")
     public ResponseEntity<ItemEntity> createOrderItem(@RequestBody ItemEntity newOrderItem) {
         ItemEntity createdItem = itemService.createOrderItem(newOrderItem);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdItem);
