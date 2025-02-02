@@ -30,7 +30,7 @@ public class ItemEntity {
 	private int catalogueId;
 	
 	@Column(name="tailor_id")
-	private int tailorId;
+	private long tailorId;
 	
 	@Column(name="item_status")
 	private String itemStatus;

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -12,6 +13,7 @@ import com.demo.item_service.dao.entity.ItemEntity;
 import com.demo.item_service.pojo.CataloguePojo;
 import com.demo.item_service.pojo.ItemCataloguePojo;
 import com.demo.item_service.pojo.OrderPojo;
+import com.demo.item_service.pojo.TailorPojo;
 
 
 
@@ -58,6 +60,11 @@ public class ItemService {
 		Optional<ItemEntity> item = itemRepo.findById(itemId);
         if (item.isPresent()) {
             ItemEntity updatedItem = item.get();
+			if(status == "finished") {
+				RestClient restClient = RestClient.create();
+				ItemCataloguePojo itemCataloguePojo = converItemCataloguePojo(updatedItem);
+				TailorPojo tailorPojo2 = restClient.put().uri("http://localhost:9181/api/tailors?id="+updatedItem.getTailorId()+"&workload="+(itemCataloguePojo.getCataloguePojo().getProductWorkload()*-1)).retrieve().body(TailorPojo.class);
+			}
             updatedItem.setItemStatus(status);
             return itemRepo.save(updatedItem);
         } else {
@@ -68,16 +75,37 @@ public class ItemService {
 	public ItemEntity createOrderItem(ItemEntity newOrderItem) {
 		
 		newOrderItem.setItemStatus("not_started");
-		ItemEntity itemEntity = itemRepo.saveAndFlush(newOrderItem);
-		ItemCataloguePojo itemCataloguePojo = converItemCataloguePojo(itemEntity);
-
 		RestClient restClient = RestClient.create();
+		List<TailorPojo> tailorPojos = restClient
+            .get()
+            .uri("http://localhost:8060/api/tailors/workload")
+            .retrieve()
+            .body(new ParameterizedTypeReference<List<TailorPojo>>(){});
+
+		System.out.println(tailorPojos);
+
+		ItemEntity itemEntity = new ItemEntity();
+		ItemCataloguePojo itemCataloguePojo = converItemCataloguePojo(newOrderItem);
+			
+        if (!tailorPojos.isEmpty()) {
+			TailorPojo tailorPojo = tailorPojos.get(0);
+			System.out.println("\n\n\n\n"+tailorPojo+"\n\n\n");
+			newOrderItem.setTailorId(tailorPojo.getTailorId());
+			TailorPojo tailorPojo2 = restClient.put().uri("http://localhost:9181/api/tailors?id="+tailorPojo.getTailorId()+"&workload="+itemCataloguePojo.getCataloguePojo().getProductWorkload()).retrieve().body(TailorPojo.class);
+			System.out.println("\n\n\n\n"+tailorPojo2+"\n\n\n");
+		}
+		itemEntity = itemRepo.saveAndFlush(newOrderItem);
+
+		
 		OrderPojo orderPojo = new OrderPojo();
 		orderPojo.setOrderId(itemCataloguePojo.getOrderId());
 		orderPojo.setOrderAmount(itemCataloguePojo.getCataloguePojo().getProductPrice());
 		restClient.put().uri("http://localhost:8081/orders/updateAmount")
 				.body(orderPojo).retrieve().body(OrderPojo.class);
+		//http://localhost:8060/api/tailors/workload
+		//Get a list of all tailors from the above endpoint if the list is not empty get the first tailor and its tailorid and attach it to the itemEntity then save it.
 		
-				return itemEntity;
+
+		return itemEntity;
 	}
 }

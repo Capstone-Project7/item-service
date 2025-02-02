@@ -12,7 +12,7 @@ public class ItemCataloguePojo {
 
     private int itemId;
 	private int orderId;
-	private int tailorId;
+	private long tailorId;
 	private String itemStatus;
     private CataloguePojo cataloguePojo;
 
